@@ -1,0 +1,22 @@
+{
+  "name": "youtubesync",
+  "version": "1.0.0",
+  "description": "Application to play youtube videos in sync",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "server": "nodemon index.js",
+    "client": "npm start --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "author": "Aaron Schrock",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^4.1.0",
+    "express": "^4.16.4",
+    "http": "0.0.0",
+    "nodemon": "^1.18.11",
+    "socket.io": "^2.2.0"
+  }
+}
