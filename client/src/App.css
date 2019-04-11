@@ -18,3 +18,7 @@ img {
 .form-control::placeholder {
   color: #bbb !important;
 }
+
+input {
+  display: inline;
+}

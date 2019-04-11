@@ -6,9 +6,9 @@ const port = process.env.PORT || 5000;
 
 io.on("connection", function(socket) {
   console.log("an user connected");
-  socket.on("event", function(msg) {
+  socket.on("pauseEvent", function(msg) {
     console.log("message: " + msg);
-    io.emit("event", msg);
+    io.emit("pauseEvent", msg);
   });
   socket.on("playEvent", function(msg) {
     console.log("message: " + msg);
@@ -25,6 +25,10 @@ io.on("connection", function(socket) {
   socket.on("statusEvent", function(msg) {
     console.log(msg);
     io.emit("statusEvent", msg);
+  });
+  socket.on("newVideoEvent", function(msg) {
+    console.log(msg);
+    io.emit("newVideoEvent", msg);
   });
 });
 
