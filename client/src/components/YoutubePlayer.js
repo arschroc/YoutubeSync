@@ -1,44 +1,36 @@
 import React, { Component } from "react";
 import YouTube from "react-youtube";
 import TextFieldGroup from "./TextFieldGroup";
+import YoutubeControls from "./YoutubeControls";
+import Spinner from "../utils/Spinner";
 
 var player = null;
-var serverPlay = false;
-var serverPause = false;
 var hasSynced = false;
 var socket = null;
 var isPlaying = false;
 var defaultUrl = "2g811Eo7K8U";
 
 function playVideo(time) {
-  hasSynced = true;
-
   if (player != null) {
     player.seekTo(time);
     player.playVideo();
   }
 }
 
-function sendPlayToServer() {
-  player.pauseVideo();
-  socket.emit("playEvent", player.getCurrentTime());
-}
-
-function sendPauseToServer() {
-  player.playVideo();
-  socket.emit("pauseEvent", "pause");
-}
-
-function pauseVideo() {
+function pauseVideo(time) {
   if (player != null) {
+    player.seekTo(time);
     player.pauseVideo();
   }
 }
 
-function resetVideo() {
-  serverPlay = false;
-  serverPause = false;
+function seekToTime(time) {
+  if (player != null) {
+    player.seekTo(time);
+  }
+}
 
+function resetVideo() {
   if (player != null) {
     player.seekTo(0.0);
   }
@@ -50,27 +42,13 @@ function setPlaybackRate(rate) {
   }
 }
 
-function syncToServer(time, playing, rate) {
-  if (player != null) {
-    setPlaybackRate(rate);
-
-    if (playing) {
-      serverPlay = true;
-      playVideo(time);
-    } else {
-      player.seekTo(time);
-      serverPause = true;
-      pauseVideo();
-    }
-  }
-}
-
 export default class YoutubePlayer extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      url: "2g811Eo7K8U",
+      url: this.props.url,
       inputURL: "",
+      time: 0.0,
       errors: {}
     };
 
@@ -84,40 +62,70 @@ export default class YoutubePlayer extends Component {
     this._onError = this._onError.bind(this);
     this.onChange = this.onChange.bind(this);
     this.onSubmit = this.onSubmit.bind(this);
+    this.syncToServer = this.syncToServer.bind(this);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({ url: nextProps.url });
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
   }
 
   componentDidMount() {
-    socket.on("pauseEvent", function(msg) {
-      serverPause = true;
-      serverPlay = false;
-      pauseVideo();
+    this.interval = setInterval(() => {
+      if (player) {
+        this.setState({ time: player.getCurrentTime() });
+      } else {
+        this.setState({ time: 0.0 });
+      }
+    }, 100);
+
+    socket.on("pauseEvent", msg => {
+      pauseVideo(msg);
     });
 
-    socket.on("playEvent", function(msg) {
-      serverPlay = true;
-      serverPause = false;
+    socket.on("playEvent", msg => {
       playVideo(msg);
     });
 
-    socket.on("playbackEvent", function(msg) {
+    socket.on("playbackEvent", msg => {
       setPlaybackRate(msg);
     });
 
-    socket.on("syncToGroupEvent", function(msg) {
+    socket.on("syncToGroupEvent", msg => {
       if (hasSynced && player != null) {
         socket.emit("statusEvent", {
           time: player.getCurrentTime(),
           isPlaying: isPlaying,
-          rate: player.getPlaybackRate()
+          video: this.state.url
         });
       }
     });
-    socket.on("statusEvent", function(msg) {
-      syncToServer(msg.time, msg.isPlaying, msg.rate);
+    socket.on("statusEvent", msg => {
+      this.syncToServer(msg.time, msg.isPlaying, msg.video);
     });
     socket.on("newVideoEvent", msg => {
       this.setState({ url: msg });
     });
+    socket.on("seekEvent", msg => {
+      seekToTime(msg);
+    });
+
+    document.body.onkeyup = function(e) {
+      if (e.keyCode === 32) {
+        //Play/pause video
+        if (player) {
+          const time = player.getCurrentTime();
+          if (isPlaying) {
+            socket.emit("pauseEvent", time);
+          } else {
+            socket.emit("playEvent", time);
+          }
+        }
+      }
+    };
   }
 
   onSubmit(e) {
@@ -141,16 +149,41 @@ export default class YoutubePlayer extends Component {
     this.setState({ [e.target.name]: e.target.value });
   }
 
+  syncToServer(time, playing, video) {
+    if (!hasSynced) {
+      this.setState({ url: video }, () => {
+        if (player != null) {
+          if (playing) {
+            playVideo(time);
+            player.playVideo();
+          } else {
+            player.seekTo(time);
+            pauseVideo();
+          }
+        }
+      });
+    } else {
+      if (player) {
+        const time = player.getCurrentTime();
+        if (isPlaying) {
+          socket.emit("playEvent", time);
+        } else {
+          socket.emit("pauseEvent", time);
+        }
+      }
+    }
+  }
+
   render() {
     const opts = {
       height: "390pt",
       width: "100%",
       playerVars: {
         // https://developers.google.com/youtube/player_parameters
-        autoplay: 1,
+        autoplay: 0,
         rel: 0,
         fs: 0,
-        controls: 1,
+        controls: 0,
         showinfo: 0,
         ecver: 2
       }
@@ -162,8 +195,9 @@ export default class YoutubePlayer extends Component {
           <div className="row">
             <div className="col-md-8 m-auto">
               <h1 className="display-4 text-center">Youtube Sync</h1>
-              <div className="video">
+              <div className="video" onClick={this.videoClicked.bind(this)}>
                 <YouTube
+                  containerClassName="ytplayer"
                   videoId={this.state.url}
                   opts={opts}
                   onReady={this._onReady}
@@ -175,6 +209,11 @@ export default class YoutubePlayer extends Component {
                   onError={this._onError}
                 />
               </div>
+              <YoutubeControls
+                socket={socket}
+                time={this.state.time}
+                duration={player ? player.getDuration() : 100.0}
+              />
             </div>
           </div>
 
@@ -212,62 +251,72 @@ export default class YoutubePlayer extends Component {
             </div>
           </form>
         </div>
+
+        <Spinner />
       </div>
     );
   }
 
   _onReady(event) {
+    //Remove pointer events
+    const ytplayer = document.getElementsByClassName("ytplayer");
+    for (var i = 0; i < ytplayer.length; i++) {
+      ytplayer[i].style.pointerEvents = "none";
+    }
     // access to player in all event handlers via event.target
     player = event.target;
-    player.pauseVideo();
 
     //Emit sync to group to sync to other possible users
     socket.emit("syncToGroupEvent", "");
   }
 
-  _onPlay(event) {
-    if (serverPlay) {
-      serverPlay = false;
-      isPlaying = true;
-    } else if (serverPause) {
-      player.pauseVideo();
-    } else {
-      serverPlay = true;
-      sendPlayToServer();
-    }
+  _onPlay() {
+    hasSynced = true;
+    isPlaying = true;
   }
 
-  _onPause(event) {
-    if (serverPause || serverPlay) {
-      serverPause = false;
-      isPlaying = false;
-    } else {
-      serverPause = true;
-      sendPauseToServer();
-    }
+  _onPause() {
+    isPlaying = false;
   }
 
-  _onEnd(event) {
+  _onEnd() {
     //Reset the video
     socket.emit("pauseEvent", "pause");
     resetVideo();
   }
 
-  _onPlaybackRateChange(event) {
+  _onPlaybackRateChange() {
     socket.emit("playbackEvent", player.getPlaybackRate());
   }
 
-  _onError(event) {
+  _onError() {
     var errors = {};
     errors.invalid = "Not a valid youtube url";
 
     this.setState({ errors: errors });
 
-    //TODO Emit new video of default
     socket.emit("newVideoEvent", defaultUrl);
   }
 
   syncClicked() {
-    socket.emit("playEvent", player.getCurrentTime());
+    if (player) {
+      const time = player.getCurrentTime();
+      if (isPlaying) {
+        socket.emit("playEvent", time);
+      } else {
+        socket.emit("pauseEvent", time);
+      }
+    }
+  }
+
+  videoClicked() {
+    if (player) {
+      const time = player.getCurrentTime();
+      if (isPlaying) {
+        socket.emit("pauseEvent", time);
+      } else {
+        socket.emit("playEvent", time);
+      }
+    }
   }
 }

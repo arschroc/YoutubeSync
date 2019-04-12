@@ -4,8 +4,10 @@ var io = require("socket.io")(http);
 
 const port = process.env.PORT || 5000;
 
-io.on("connection", function(socket) {
+io.on("connection", socket => {
   console.log("an user connected");
+  //console.log(io.engine.clientsCount);
+
   socket.on("pauseEvent", function(msg) {
     console.log("message: " + msg);
     io.emit("pauseEvent", msg);
@@ -24,11 +26,20 @@ io.on("connection", function(socket) {
   });
   socket.on("statusEvent", function(msg) {
     console.log(msg);
+
     io.emit("statusEvent", msg);
   });
   socket.on("newVideoEvent", function(msg) {
     console.log(msg);
     io.emit("newVideoEvent", msg);
+  });
+  socket.on("seekEvent", function(msg) {
+    console.log(msg);
+    io.emit("seekEvent", msg);
+  });
+  socket.on("numPlayersEvent", msg => {
+    console.log(io.engine.clientsCount);
+    io.emit("numPlayersEvent", io.engine.clientsCount);
   });
 });
 

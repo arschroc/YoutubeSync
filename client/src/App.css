@@ -22,3 +22,85 @@ img {
 input {
   display: inline;
 }
+
+hr {
+  width: 300px;
+  height: 5px;
+}
+
+.square {
+  position: relative;
+  height: 18px;
+  width: 18px;
+  border: 1px solid;
+  margin-top: -13%;
+  margin-left: -2%;
+  border-radius: 50%;
+  background-color: red;
+}
+
+.controls {
+  position: relative;
+}
+
+/*
+*  position: relative gives a new position context
+*/
+.wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 
+*  The .navi properties are for styling only
+*  These properties can be changed or removed
+*/
+.navi {
+  background-color: #eaeaea;
+  height: 40px;
+}
+
+/*
+*  Position the #infoi element in the top-right
+*  of the .wrapper element
+*/
+#infoi {
+  position: relative;
+  /*Was absolute */
+  top: 0;
+  right: 0;
+
+  /*
+  *  Styling only, the below can be changed or removed
+  *  depending on your use case
+  */
+  height: 20px;
+  padding: 10px 10px;
+}
+
+.filler {
+  height: 100%;
+  width: 20%;
+  background-color: black;
+}
+
+.flex-container {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.remaining {
+  flex-grow: 1;
+}
+
+.frame {
+  pointer-events: none;
+}
+
+.ytplayer {
+  pointer-events: none;
+}
+
+.connecting {
+  text-align: center;
+}
