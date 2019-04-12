@@ -15,7 +15,10 @@ class App extends Component {
       numPlayers: 0
     };
 
-    socket = io();
+    //socket = io();
+    //socket = io({ transports: ["websocket"] });
+    //https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon
+    socket = io("ws://localhost:5000", { transports: ["websocket"] });
   }
 
   componentDidMount() {
@@ -29,15 +32,18 @@ class App extends Component {
 
     //Receive from socket
     socket.on("numPlayersEvent", msg => {
-      if (this.state.numPlayers === 0) {
-        //If you are the first user to connect use the default url
-        if (msg === 1) {
-          this.setState({
-            url: this.state.defaultURL
-          });
-        } else {
-          //IF there are other players request to sync with their video
-          socket.emit("syncToGroupEvent", "");
+      if (this.state.url === "") {
+        if (this.state.numPlayers === 0) {
+          //If you are the first user to connect use the default url
+          if (msg === 1) {
+            this.setState({
+              url: this.state.defaultURL
+            });
+          } else {
+            //IF there are other players request to sync with their video
+            console.log("Emiting sync event with id " + socket.io.engine.id);
+            socket.emit("syncToGroupEvent", socket.io.engine.id);
+          }
         }
       }
     });

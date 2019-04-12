@@ -2,10 +2,9 @@ import React, { Component } from "react";
 import YouTube from "react-youtube";
 import TextFieldGroup from "./TextFieldGroup";
 import YoutubeControls from "./YoutubeControls";
-import Spinner from "../utils/Spinner";
 
 var player = null;
-var hasSynced = false;
+var hasSynced = true;
 var socket = null;
 var isPlaying = false;
 var defaultUrl = "2g811Eo7K8U";
@@ -61,7 +60,7 @@ export default class YoutubePlayer extends Component {
     this._onPlaybackRateChange = this._onPlaybackRateChange.bind(this);
     this._onError = this._onError.bind(this);
     this.onChange = this.onChange.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
+    this.submitClicked = this.submitClicked.bind(this);
     this.syncToServer = this.syncToServer.bind(this);
   }
 
@@ -87,6 +86,7 @@ export default class YoutubePlayer extends Component {
     });
 
     socket.on("playEvent", msg => {
+      console.log("Told to play");
       playVideo(msg);
     });
 
@@ -95,11 +95,15 @@ export default class YoutubePlayer extends Component {
     });
 
     socket.on("syncToGroupEvent", msg => {
-      if (hasSynced && player != null) {
+      console.log("Received syncToGroup from " + msg);
+      var socketid = msg;
+      console.log("socketID: " + socketid);
+      if (socket.io.engine.id !== msg && player !== null) {
         socket.emit("statusEvent", {
           time: player.getCurrentTime(),
           isPlaying: isPlaying,
-          video: this.state.url
+          video: this.state.url,
+          socketID: socketid
         });
       }
     });
@@ -128,8 +132,7 @@ export default class YoutubePlayer extends Component {
     };
   }
 
-  onSubmit(e) {
-    e.preventDefault();
+  submitClicked() {
     var newURL = this.state.inputURL.split("=")[1];
 
     if (newURL === undefined) {
@@ -214,45 +217,41 @@ export default class YoutubePlayer extends Component {
                 time={this.state.time}
                 duration={player ? player.getDuration() : 100.0}
               />
+              <div className="flex-container mt-1 mb-2">
+                <div className="remaining">
+                  <TextFieldGroup
+                    placeholder="Youtube url"
+                    name="inputURL"
+                    type="text"
+                    value={this.state.inputURL}
+                    onChange={this.onChange}
+                    error={this.state.errors.invalid}
+                  />
+                </div>
+                <div>
+                  <button
+                    onClick={this.submitClicked.bind(this)}
+                    className={
+                      "btn btn-info " +
+                      (window.screen.availWidth > 600 ? "ml-2" : "")
+                    }
+                  >
+                    Submit
+                  </button>
+                  <button
+                    onClick={this.syncClicked.bind(this)}
+                    className={
+                      "btn btn-info " +
+                      (window.screen.availWidth > 600 ? "ml-2" : "")
+                    }
+                  >
+                    Sync
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
-          <form onSubmit={this.onSubmit} className="mt-2">
-            <div className="form-row">
-              <div className="form-group col-md-8 m-auto">
-                <h5 className="">
-                  Enter new video url (e.g.
-                  https://www.youtube.com/watch?v=2g811Eo7K8U)
-                </h5>
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group col-md-2" />
-              <div className="form-group col-md-5">
-                <TextFieldGroup
-                  placeholder="Youtube url"
-                  name="inputURL"
-                  type="text"
-                  value={this.state.inputURL}
-                  onChange={this.onChange}
-                  error={this.state.errors.invalid}
-                />
-              </div>
-              <div className="form-group col-md-3">
-                <input type="submit" className="btn btn-info" />
-                <button
-                  onClick={this.syncClicked.bind(this)}
-                  className="btn btn-info mr-2 mt-0 ml-2"
-                >
-                  Sync
-                </button>
-              </div>
-              <div className="form-group col-md-2" />
-            </div>
-          </form>
         </div>
-
-        <Spinner />
       </div>
     );
   }
@@ -267,7 +266,9 @@ export default class YoutubePlayer extends Component {
     player = event.target;
 
     //Emit sync to group to sync to other possible users
-    socket.emit("syncToGroupEvent", "");
+    //console.log("Emiting sync event with id " + socket.io.engine.id);
+    //
+    socket.emit("syncToGroupEvent", socket.io.engine.id);
   }
 
   _onPlay() {

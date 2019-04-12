@@ -23,22 +23,6 @@ input {
   display: inline;
 }
 
-hr {
-  width: 300px;
-  height: 5px;
-}
-
-.square {
-  position: relative;
-  height: 18px;
-  width: 18px;
-  border: 1px solid;
-  margin-top: -13%;
-  margin-left: -2%;
-  border-radius: 50%;
-  background-color: red;
-}
-
 .controls {
   position: relative;
 }

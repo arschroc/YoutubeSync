@@ -56,13 +56,17 @@ export default class YoutubeControls extends Component {
         <div className="flex-container">
           <div>
             <button
-              className="btn btn-info mr-0 mt-0 ml-0"
+              className={
+                "btn btn-info " + (window.screen.availWidth > 600 ? "mr-2" : "")
+              }
               onClick={this.playClicked.bind(this)}
             >
               Play
             </button>
             <button
-              className="btn btn-info mr-0 mt-0 ml-0"
+              className={
+                "btn btn-info " + (window.screen.availWidth > 600 ? "mr-2" : "")
+              }
               onClick={this.pauseClicked.bind(this)}
             >
               Pause
