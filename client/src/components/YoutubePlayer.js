@@ -4,7 +4,7 @@ import TextFieldGroup from "./TextFieldGroup";
 import YoutubeControls from "./YoutubeControls";
 
 var player = null;
-var hasSynced = true;
+var hasSynced = false;
 var socket = null;
 var isPlaying = false;
 var defaultUrl = "2g811Eo7K8U";
@@ -86,7 +86,6 @@ export default class YoutubePlayer extends Component {
     });
 
     socket.on("playEvent", msg => {
-      console.log("Told to play");
       playVideo(msg);
     });
 
@@ -95,9 +94,7 @@ export default class YoutubePlayer extends Component {
     });
 
     socket.on("syncToGroupEvent", msg => {
-      console.log("Received syncToGroup from " + msg);
       var socketid = msg;
-      console.log("socketID: " + socketid);
       if (socket.io.engine.id !== msg && player !== null) {
         socket.emit("statusEvent", {
           time: player.getCurrentTime(),
@@ -266,8 +263,6 @@ export default class YoutubePlayer extends Component {
     player = event.target;
 
     //Emit sync to group to sync to other possible users
-    //console.log("Emiting sync event with id " + socket.io.engine.id);
-    //
     socket.emit("syncToGroupEvent", socket.io.engine.id);
   }
 

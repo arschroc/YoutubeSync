@@ -7,6 +7,7 @@ const port = process.env.PORT || 5000;
 io.on("connection", socket => {
   console.log("an user connected");
   console.log(" Number of users: " + io.engine.clientsCount);
+  io.emit("numPlayersEvent", io.engine.clientsCount);
 
   socket.on("disconnect", function() {
     console.log("DISCONNESSO!!!  with id: " + socket.id);
